@@ -88,6 +88,11 @@ public class BillingManager {
         writeLongPref(context, LAST_PURCHASED_CHECK_DATE, dateInMillis);
     }
 
+    public static void startTrial(Context context) {
+        if(BillingManager.getTrialStartDate(context) == 0)
+            BillingManager.setTrialStartDate(context, System.currentTimeMillis());
+    }
+
     public static class Builder {
 
         private final Application context;
