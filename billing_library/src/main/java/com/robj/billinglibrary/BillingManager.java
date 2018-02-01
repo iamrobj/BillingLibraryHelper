@@ -25,7 +25,6 @@ public class BillingManager {
     private static final String LAST_PURCHASED_CHECK_DATE = "LAST_PURCHASED_CHECK_DATE";
 
     protected BillingManager(Application context) {
-        getTrialStartDate(context); //Create the install date for trial if it's not already set
         Billing.init(context);
     }
 
@@ -38,7 +37,7 @@ public class BillingManager {
     }
 
     public static boolean isTrialStarted(Context context) {
-        return getTrialLengthInMillis(context) > 0 && readLongPref(context, TRIAL_START_DATE) > 0;
+        return getTrialLengthInMillis(context) > 0 && getTrialStartDate(context) > 0;
     }
 
     public static boolean isTrialPeriod(Context context) {
@@ -61,12 +60,7 @@ public class BillingManager {
     }
 
     public static long getTrialStartDate(Context context) {
-        long installDate = readLongPref(context, TRIAL_START_DATE);
-        if(installDate == 0) {
-            installDate = System.currentTimeMillis();
-            setTrialStartDate(context, installDate);
-        }
-        return installDate;
+        return readLongPref(context, TRIAL_START_DATE);
     }
 
     static void setTrialStartDate(Context context, long installDateInMillis) {
