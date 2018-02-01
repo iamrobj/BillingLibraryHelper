@@ -37,6 +37,10 @@ public class BillingManager {
         writeLongPref(context, TRIAL_LENGTH, TimeUnit.DAYS.toMillis(trialLengthInDays));
     }
 
+    public static boolean isTrialStarted(Context context) {
+        return getTrialLengthInMillis(context) > 0 && readLongPref(context, TRIAL_START_DATE) > 0;
+    }
+
     public static boolean isTrialPeriod(Context context) {
         if(isPurchased(context))
             return false;
