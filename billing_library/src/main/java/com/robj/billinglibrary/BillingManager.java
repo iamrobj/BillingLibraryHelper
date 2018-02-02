@@ -3,6 +3,7 @@ package com.robj.billinglibrary;
 import android.app.Application;
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
 import java.util.concurrent.TimeUnit;
 
@@ -89,8 +90,11 @@ public class BillingManager {
     }
 
     public static void startTrial(Context context) {
-        if(BillingManager.getTrialStartDate(context) == 0)
+        if(BillingManager.getTrialStartDate(context) == 0) {
             BillingManager.setTrialStartDate(context, System.currentTimeMillis());
+            Log.d(TAG, "Starting trial..");
+        } else
+            Log.d(TAG, "Trial already started..");
     }
 
     public static class Builder {
@@ -118,8 +122,10 @@ public class BillingManager {
         public BillingManager build() {
             BillingManager billingManager = new BillingManager(context);
             billingManager.setTrialLengthInDays(context, trialLengthInDays);
-            if(resetTrial)
+            if(resetTrial) {
                 BillingManager.setTrialStartDate(context, System.currentTimeMillis());
+                Log.d(TAG, "Trial reset..");
+            }
             return billingManager;
         }
 
