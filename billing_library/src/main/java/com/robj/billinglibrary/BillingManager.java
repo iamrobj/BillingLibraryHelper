@@ -42,7 +42,7 @@ public class BillingManager {
     }
 
     public static boolean isTrialPeriod(Context context) {
-        if(isPurchased(context))
+        if(isPurchased(context) || !isTrialStarted(context))
             return false;
         long diff = System.currentTimeMillis() - getTrialStartDate(context);
         return diff < getTrialLengthInMillis(context);
@@ -95,6 +95,11 @@ public class BillingManager {
             Log.d(TAG, "Starting trial..");
         } else
             Log.d(TAG, "Trial already started..");
+    }
+
+    public static void forceTrialExpiry(Context context) {
+        setTrialStartDate(context, 1);
+        Log.d(TAG, "Trial forcefully expired..");
     }
 
     public static class Builder {
