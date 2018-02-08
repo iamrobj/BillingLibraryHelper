@@ -42,6 +42,10 @@ public class BillingUtils {
         return Billing.getInstance().getSkuInfo(skuType, sku);
     }
 
+    public static Observable<Boolean> consumeSkuPurchase(String skuType, String sku) {
+        return Billing.getInstance().consumePurchase(skuType, sku);
+    }
+
     public static void clearPurchases() {
         Billing.getInstance().clearPurchases();
     }

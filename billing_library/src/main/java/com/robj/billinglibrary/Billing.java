@@ -3,11 +3,13 @@ package com.robj.billinglibrary;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
+import com.android.billingclient.api.ConsumeResponseListener;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.SkuDetails;
 
@@ -16,6 +18,8 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableSource;
+import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
 /**
@@ -96,6 +100,40 @@ class Billing implements BillingClientStateListener {
                 .subscribe(integer -> {
 
                 }, throwable -> throwable.printStackTrace());
+    }
+
+    /**
+     * Returns true if successfully consumed
+     * Returns false if sku wasn't purchased
+     * **/
+    public Observable<Boolean> consumePurchase(@NonNull String skuType, @NonNull  String sku) {
+        return Observable.create(e -> {
+            Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
+            if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
+                for (Purchase purchase : purchasesResult.getPurchasesList()) {
+                    if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED && purchase.getSku().equals(sku)) {
+                        if(e.isDisposed())
+                            return;
+                        mBillingClient.consumeAsync(purchase.getPurchaseToken(), (purchaseToken, resultCode) -> {
+                            if(e.isDisposed())
+                                return;
+                            if(resultCode == BillingClient.BillingResponse.OK)
+                                e.onNext(true);
+                            else
+                                e.onError(new BillingException(BillingException.ErrorType.UNKNOWN));
+                            e.onComplete();
+                        });
+                        return;
+                    }
+                }
+                e.onNext(false);
+                e.onComplete();
+                return;
+            }
+            Log.e(TAG, "consumePurchase for sku type " + skuType + " with response code: " + purchasesResult.getResponseCode());
+            if(!e.isDisposed())
+                e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES));
+        });
     }
 
     public Observable<SkuDetails> getSkuInfo(String skuType, String sku) {
