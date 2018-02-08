@@ -87,8 +87,8 @@ class Billing implements BillingClientStateListener {
         return context;
     }
 
-    public void clearPurchases() {
-        getPurchases()
+    public void clearFirstAvailablePurchase() {
+        getFirstAvailablePurchase()
                 .doOnNext(purchaseOptional -> {
                     if(!purchaseOptional.isEmpty()) {
                         Purchase purchase = purchaseOptional.get();
@@ -166,17 +166,41 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<Optional<Purchase>> getPurchases() {
-        return getPurchases(BillingClient.SkuType.INAPP)
+    public Observable<Optional<Purchase>> getSpecificSkuPurchase(String skuType, List<String> skus) {
+        return Observable.create(e -> {
+
+            Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
+            if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
+                for (Purchase purchase : purchasesResult.getPurchasesList()) {
+                    if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED && skus.contains(purchase.getSku())) {
+                        if(e.isDisposed())
+                            return;
+                        e.onNext(new Optional<>(purchase));
+                        e.onComplete();
+                        return;
+                    }
+                }
+                e.onNext(new Optional<>(null));
+                e.onComplete();
+                return;
+            }
+            Log.e(TAG, "getSpecificSkuPurchase for sku type " + skuType + " with response code: " + purchasesResult.getResponseCode());
+            if(!e.isDisposed())
+                e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES));
+        });
+    }
+
+    public Observable<Optional<Purchase>> getFirstAvailablePurchase() {
+        return getFirstAvailablePurchase(BillingClient.SkuType.INAPP)
                 .flatMap(purchaseOptional -> {
                     if(!purchaseOptional.isEmpty())
                         return Observable.just(purchaseOptional);
                     else
-                        return getPurchases(BillingClient.SkuType.SUBS);
+                        return getFirstAvailablePurchase(BillingClient.SkuType.SUBS);
                 });
     }
 
-    private Observable<Optional<Purchase>> getPurchases(String skuType) {
+    private Observable<Optional<Purchase>> getFirstAvailablePurchase(String skuType) {
         return Observable.create(e -> {
             Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {

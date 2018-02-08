@@ -7,6 +7,9 @@ import android.util.Log;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.SkuDetails;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.reactivex.Observable;
 
 /**
@@ -17,8 +20,27 @@ public class BillingUtils {
 
     private static final String TAG = BillingUtils.class.getSimpleName();
 
+    public static Observable<Optional<Purchase>> reevaluateSpecificPurchasedStatus(Context context, String skuType, String sku) {
+        List<String> skus = new ArrayList();
+        skus.add(sku);
+        return reevaluateSpecificPurchasedStatus(context, skuType, skus);
+    }
+
+    public static Observable<Optional<Purchase>> reevaluateSpecificPurchasedStatus(Context context, String skuType, List<String> skus) {
+        return Billing.getInstance().getSpecificSkuPurchase(skuType, skus)
+                .doOnNext(purchaseOptional -> {
+                    if(purchaseOptional.isEmpty()) {
+                        BillingManager.savePurchase(context, null);
+                    } else {
+                        Purchase purchase = purchaseOptional.get();
+                        BillingManager.savePurchase(context, purchase.getSku());
+                    }
+                    BillingManager.setLastPurchaseCheckedDate(context, System.currentTimeMillis());
+                });
+    }
+
     public static Observable<Optional<Purchase>> reevaluatePurchasedStatus(Context context) {
-        return Billing.getInstance().getPurchases()
+        return Billing.getInstance().getFirstAvailablePurchase()
                 .doOnNext(purchaseOptional -> {
                     if(purchaseOptional.isEmpty()) {
                         BillingManager.savePurchase(context, null);
@@ -46,7 +68,7 @@ public class BillingUtils {
         return Billing.getInstance().consumePurchase(skuType, sku);
     }
 
-    public static void clearPurchases() {
-        Billing.getInstance().clearPurchases();
+    public static void clearFirstAvailablePurchase() {
+        Billing.getInstance().clearFirstAvailablePurchase();
     }
 }
