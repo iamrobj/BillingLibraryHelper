@@ -249,13 +249,15 @@ class Billing implements BillingClientStateListener {
                 break;
             case BillingClient.BillingResponse.SERVICE_DISCONNECTED:
 //                break;
+            case BillingClient.BillingResponse.USER_CANCELED:
+                handlePurchaseError(BillingException.ErrorType.BILLING_CANCELLED);
+                break;
             case BillingClient.BillingResponse.ITEM_NOT_OWNED:
             case BillingClient.BillingResponse.BILLING_UNAVAILABLE:
             case BillingClient.BillingResponse.DEVELOPER_ERROR:
             case BillingClient.BillingResponse.ERROR:
             case BillingClient.BillingResponse.FEATURE_NOT_SUPPORTED:
             case BillingClient.BillingResponse.SERVICE_UNAVAILABLE:
-            case BillingClient.BillingResponse.USER_CANCELED:
             default:
                 handlePurchaseError(BillingException.ErrorType.UNKNOWN);
                 break;
