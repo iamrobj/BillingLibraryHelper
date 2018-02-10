@@ -13,7 +13,7 @@ import static com.robj.billinglibrary.PrefsUtils.writeLongPref;
 import static com.robj.billinglibrary.PrefsUtils.writeStringPref;
 
 /**
- * Created by jj on 05/11/17.
+ * Created by Rob J on 05/11/17.
  */
 
 public class BillingManager {

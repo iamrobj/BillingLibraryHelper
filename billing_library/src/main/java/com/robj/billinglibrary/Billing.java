@@ -9,7 +9,6 @@ import android.util.Log;
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
-import com.android.billingclient.api.ConsumeResponseListener;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.SkuDetails;
 
@@ -18,8 +17,6 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableSource;
-import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
 /**
@@ -138,9 +135,6 @@ class Billing implements BillingClientStateListener {
 
     public Observable<SkuDetails> getSkuInfo(String skuType, String sku) {
         return Observable.create(e -> {
-//            int isFeatureSupportedResult = mBillingClient.isFeatureSupported(BillingClient.FeatureType.);
-
-//            if(isFeatureSupportedResult == BillingClient.BillingResponse.OK) {
                 List<String> skuList = new ArrayList();
                 skuList.add(sku);
                 mBillingClient.querySkuDetailsAsync(skuType, skuList, result -> {
@@ -161,8 +155,6 @@ class Billing implements BillingClientStateListener {
                     if(!e.isDisposed())
                         e.onError(new BillingException(BillingException.ErrorType.SKU_DETAILS_ERROR));
                 });
-//            } else
-//                e.onError(new BillingException(R.string.error_billing_iap_not_supported));
         });
     }
 

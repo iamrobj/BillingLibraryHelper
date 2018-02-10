@@ -1,7 +1,7 @@
 package com.robj.billinglibrary;
 
 /**
- * Created by jj on 05/11/17.
+ * Created by Rob J on 05/11/17.
  */
 public class BillingException extends RuntimeException {
 
