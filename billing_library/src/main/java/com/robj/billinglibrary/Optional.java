@@ -12,7 +12,7 @@ public class Optional<T> {
 
     private final T optional;
 
-    public Optional(@Nullable T optional) {
+    Optional(@Nullable T optional) {
         this.optional = optional;
     }
 

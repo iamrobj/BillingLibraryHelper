@@ -7,7 +7,7 @@ import android.content.SharedPreferences;
  * Created by Rob J on 05/11/17.
  */
 
-public class PrefsUtils {
+class PrefsUtils {
 
     private static final String TAG = PrefsUtils.class.getSimpleName();
 

@@ -11,7 +11,7 @@ public class BillingException extends RuntimeException {
 
     public final ErrorType errorType;
 
-    public BillingException(ErrorType errorType) {
+    BillingException(ErrorType errorType) {
         this.errorType = errorType;
     }
 }

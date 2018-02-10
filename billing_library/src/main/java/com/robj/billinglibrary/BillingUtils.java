@@ -5,7 +5,6 @@ import android.content.Context;
 import android.util.Log;
 
 import com.android.billingclient.api.Purchase;
-import com.android.billingclient.api.SkuDetails;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,39 +19,39 @@ public class BillingUtils {
 
     private static final String TAG = BillingUtils.class.getSimpleName();
 
-    public static Observable<Optional<Purchase>> reevaluateSpecificPurchasedStatus(Context context, SkuType skuType, String sku) {
+    public static Observable<Optional<com.robj.billinglibrary.Purchase>> reevaluateSpecificPurchasedStatus(Context context, SkuType skuType, String sku) {
         List<String> skus = new ArrayList();
         skus.add(sku);
         return reevaluateSpecificPurchasedStatus(context, skuType, skus);
     }
 
-    public static Observable<Optional<Purchase>> reevaluateSpecificPurchasedStatus(Context context, SkuType skuType, List<String> skus) {
+    public static Observable<Optional<com.robj.billinglibrary.Purchase>> reevaluateSpecificPurchasedStatus(Context context, SkuType skuType, List<String> skus) {
         return Billing.getInstance().getSpecificSkuPurchase(skuType.getType(), skus)
                 .doOnNext(purchaseOptional -> {
                     if (purchaseOptional.isEmpty()) {
                         BillingManager.savePurchase(context, null);
                     } else {
-                        Purchase purchase = purchaseOptional.get();
+                        com.robj.billinglibrary.Purchase purchase = purchaseOptional.get();
                         BillingManager.savePurchase(context, purchase.getSku());
                     }
                     BillingManager.setLastPurchaseCheckedDate(context, System.currentTimeMillis());
                 });
     }
 
-    public static Observable<Optional<Purchase>> reevaluatePurchasedStatus(Context context) {
+    public static Observable<Optional<com.robj.billinglibrary.Purchase>> reevaluatePurchasedStatus(Context context) {
         return Billing.getInstance().getFirstAvailablePurchase()
                 .doOnNext(purchaseOptional -> {
                     if(purchaseOptional.isEmpty()) {
                         BillingManager.savePurchase(context, null);
                     } else {
-                        Purchase purchase = purchaseOptional.get();
+                        com.robj.billinglibrary.Purchase purchase = purchaseOptional.get();
                         BillingManager.savePurchase(context, purchase.getSku());
                     }
                     BillingManager.setLastPurchaseCheckedDate(context, System.currentTimeMillis());
                 });
     }
 
-    public static Observable<Purchase> makePurchase(Activity activity, SkuType skuType, String sku) {
+    public static Observable<com.robj.billinglibrary.Purchase> makePurchase(Activity activity, SkuType skuType, String sku) {
         return Billing.getInstance().launchBillingFlow(activity, skuType.getType(), sku)
                 .doOnNext(purchase -> {
                     Log.d(TAG, "Purchase success..");
