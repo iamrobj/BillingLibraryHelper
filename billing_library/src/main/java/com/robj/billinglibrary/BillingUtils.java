@@ -20,16 +20,16 @@ public class BillingUtils {
 
     private static final String TAG = BillingUtils.class.getSimpleName();
 
-    public static Observable<Optional<Purchase>> reevaluateSpecificPurchasedStatus(Context context, String skuType, String sku) {
+    public static Observable<Optional<Purchase>> reevaluateSpecificPurchasedStatus(Context context, SkuType skuType, String sku) {
         List<String> skus = new ArrayList();
         skus.add(sku);
         return reevaluateSpecificPurchasedStatus(context, skuType, skus);
     }
 
-    public static Observable<Optional<Purchase>> reevaluateSpecificPurchasedStatus(Context context, String skuType, List<String> skus) {
-        return Billing.getInstance().getSpecificSkuPurchase(skuType, skus)
+    public static Observable<Optional<Purchase>> reevaluateSpecificPurchasedStatus(Context context, SkuType skuType, List<String> skus) {
+        return Billing.getInstance().getSpecificSkuPurchase(skuType.getType(), skus)
                 .doOnNext(purchaseOptional -> {
-                    if(purchaseOptional.isEmpty()) {
+                    if (purchaseOptional.isEmpty()) {
                         BillingManager.savePurchase(context, null);
                     } else {
                         Purchase purchase = purchaseOptional.get();
@@ -52,20 +52,20 @@ public class BillingUtils {
                 });
     }
 
-    public static Observable<Purchase> makePurchase(Activity activity, String skuType, String sku) {
-        return Billing.getInstance().launchBillingFlow(activity, skuType, sku)
+    public static Observable<Purchase> makePurchase(Activity activity, SkuType skuType, String sku) {
+        return Billing.getInstance().launchBillingFlow(activity, skuType.getType(), sku)
                 .doOnNext(purchase -> {
                     Log.d(TAG, "Purchase success..");
                     BillingManager.savePurchase(activity, purchase.getSku());
                 });
     }
 
-    public static Observable<SkuDetails> getSkuInfo(String skuType, String sku) {
-        return Billing.getInstance().getSkuInfo(skuType, sku);
+    public static Observable<SkuDetails> getSkuInfo(SkuType skuType, String sku) {
+        return Billing.getInstance().getSkuInfo(skuType.getType(), sku);
     }
 
-    public static Observable<Boolean> consumeSkuPurchase(String skuType, String sku) {
-        return Billing.getInstance().consumePurchase(skuType, sku);
+    public static Observable<Boolean> consumeSkuPurchase(SkuType skuType, String sku) {
+        return Billing.getInstance().consumePurchase(skuType.getType(), sku);
     }
 
     public static void clearFirstAvailablePurchase() {

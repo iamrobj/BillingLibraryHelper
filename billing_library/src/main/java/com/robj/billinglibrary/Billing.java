@@ -11,6 +11,7 @@ import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.SkuDetails;
+import com.android.billingclient.api.SkuDetailsParams;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +48,7 @@ class Billing implements BillingClientStateListener {
     private Billing(Application context) {
         this.billing = this;
         this.context = context;
-        mBillingClient = new BillingClient.Builder(context)
+        mBillingClient = BillingClient.newBuilder(context)
                 .setListener((responseCode, purchases) -> {
                     if (responseCode == BillingClient.BillingResponse.OK && purchases != null) {
                         for (Purchase purchase : purchases) {
@@ -108,13 +109,13 @@ class Billing implements BillingClientStateListener {
             Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
                 for (Purchase purchase : purchasesResult.getPurchasesList()) {
-                    if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED && purchase.getSku().equals(sku)) {
+                    if (purchase.getSku().equals(sku)) {
                         if(e.isDisposed())
                             return;
-                        mBillingClient.consumeAsync(purchase.getPurchaseToken(), (purchaseToken, resultCode) -> {
+                        mBillingClient.consumeAsync(purchase.getPurchaseToken(), (responseCode, purchaseToken) -> {
                             if(e.isDisposed())
                                 return;
-                            if(resultCode == BillingClient.BillingResponse.OK)
+                            if(responseCode == BillingClient.BillingResponse.OK)
                                 e.onNext(true);
                             else
                                 e.onError(new BillingException(BillingException.ErrorType.UNKNOWN));
@@ -137,10 +138,14 @@ class Billing implements BillingClientStateListener {
         return Observable.create(e -> {
                 List<String> skuList = new ArrayList();
                 skuList.add(sku);
-                mBillingClient.querySkuDetailsAsync(skuType, skuList, result -> {
-                    if (result.getResponseCode() == BillingClient.BillingResponse.OK) {
-                        if (result.getSkuDetailsList() != null) {
-                            for (SkuDetails skuDetails : result.getSkuDetailsList()) {
+            SkuDetailsParams params = SkuDetailsParams.newBuilder()
+                                            .setType(skuType)
+                                            .setSkusList(skuList)
+                                            .build();
+                mBillingClient.querySkuDetailsAsync(params, (responseCode, skuDetailsList) -> {
+                    if (responseCode == BillingClient.BillingResponse.OK) {
+                        if (skuDetailsList != null) {
+                            for (SkuDetails skuDetails : skuDetailsList) {
                                 if (skuDetails.getSku().equals(sku)) {
                                     if(!e.isDisposed())
                                         e.onNext(skuDetails);
@@ -151,7 +156,7 @@ class Billing implements BillingClientStateListener {
                         if(!e.isDisposed())
                             e.onError(new BillingException(BillingException.ErrorType.NO_SKU_DETAILS));
                     }
-                    Log.e(TAG, "getSkuInfo response code: " + result.getResponseCode());
+                    Log.e(TAG, "getSkuInfo response code: " + responseCode);
                     if(!e.isDisposed())
                         e.onError(new BillingException(BillingException.ErrorType.SKU_DETAILS_ERROR));
                 });
@@ -164,7 +169,7 @@ class Billing implements BillingClientStateListener {
             Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
                 for (Purchase purchase : purchasesResult.getPurchasesList()) {
-                    if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED && skus.contains(purchase.getSku())) {
+                    if(skus.contains(purchase.getSku())) {
                         if(e.isDisposed())
                             return;
                         e.onNext(new Optional<>(purchase));
@@ -197,11 +202,9 @@ class Billing implements BillingClientStateListener {
             Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
                 for (Purchase purchase : purchasesResult.getPurchasesList()) {
-                    if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
-                        if(!e.isDisposed())
-                            e.onNext(new Optional(purchase));
-                        return;
-                    }
+                    if(!e.isDisposed())
+                        e.onNext(new Optional(purchase));
+                    return;
                 }
                 if(!e.isDisposed())
                     e.onNext(new Optional(null));
@@ -213,38 +216,12 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<Boolean> confirmPurchase(String sku) {
-        return Observable.create(e -> {
-            List<String> skuList = new ArrayList();
-            skuList.add(sku);
-            mBillingClient.querySkuDetailsAsync(BillingClient.SkuType.INAPP, skuList, result -> {
-                if (result.getResponseCode() == BillingClient.BillingResponse.OK) {
-                    if (result.getSkuDetailsList() != null && !result.getSkuDetailsList().isEmpty()) {
-                        for (SkuDetails skuDetails : result.getSkuDetailsList()) {
-                            if (skuDetails.getSku().equals(sku)) {
-                                if(!e.isDisposed())
-                                    e.onNext(true);
-                                return;
-                            }
-                        }
-                        if(!e.isDisposed())
-                            e.onNext(false);
-                        return;
-                    }
-                }
-                Log.e(TAG, "getSkuInfo response code: " + result.getResponseCode());
-                if(!e.isDisposed())
-                    e.onError(new BillingException(BillingException.ErrorType.SKU_DETAILS_ERROR));
-            });
-        });
-    }
-
     public Observable<Purchase> launchBillingFlow(Activity activity, String skuType, String skuId) {
         if(purchaseObservableEmitter != null)
             return null;
         return Observable.create(e -> {
             purchaseObservableEmitter = e;
-            BillingFlowParams.Builder builder = new BillingFlowParams.Builder()
+            BillingFlowParams.Builder builder = BillingFlowParams.newBuilder()
                     .setSku(skuId)
                     .setType(skuType);
             int code = mBillingClient.launchBillingFlow(activity, builder.build());
