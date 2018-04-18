@@ -9,7 +9,6 @@ import android.util.Log;
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
-import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.SkuDetails;
 import com.android.billingclient.api.SkuDetailsParams;
 
@@ -33,7 +32,7 @@ class Billing implements BillingClientStateListener {
     private final BillingClient mBillingClient;
     private final Context context;
 
-    private ObservableEmitter<com.robj.billinglibrary.Purchase> purchaseObservableEmitter;
+    private ObservableEmitter<Purchase> purchaseObservableEmitter;
 
     public static void init(Application context) {
         if(billing != null)
@@ -51,7 +50,7 @@ class Billing implements BillingClientStateListener {
         mBillingClient = BillingClient.newBuilder(context)
                 .setListener((responseCode, purchases) -> {
                     if (responseCode == BillingClient.BillingResponse.OK && purchases != null) {
-                        for (Purchase purchase : purchases) {
+                        for (com.android.billingclient.api.Purchase purchase : purchases) {
                             handlePurchase(purchase);
                             return;
                         }
@@ -72,11 +71,11 @@ class Billing implements BillingClientStateListener {
         }
     }
 
-    private void handlePurchase(Purchase purchase) {
+    private void handlePurchase(com.android.billingclient.api.Purchase purchase) {
         Log.d(TAG, "Purchase of sku " + purchase.getSku() + " was successful..");
         BillingManager.savePurchase(getContext(), purchase.getSku());
         if(purchaseObservableEmitter != null) {
-            purchaseObservableEmitter.onNext(new com.robj.billinglibrary.Purchase(purchase));
+            purchaseObservableEmitter.onNext(new Purchase(purchase));
             purchaseObservableEmitter = null;
         }
     }
@@ -89,7 +88,7 @@ class Billing implements BillingClientStateListener {
         getFirstAvailablePurchase()
                 .doOnNext(purchaseOptional -> {
                     if(!purchaseOptional.isEmpty()) {
-                        com.robj.billinglibrary.Purchase purchase = purchaseOptional.get();
+                        Purchase purchase = purchaseOptional.get();
                         mBillingClient.consumeAsync(purchase.getPurchaseToken(), (purchaseToken, resultCode) -> Log.d(TAG, "Consumed : " + resultCode));
                         BillingManager.savePurchase(getContext(), null);
                     }
@@ -106,9 +105,9 @@ class Billing implements BillingClientStateListener {
      * **/
     public Observable<Boolean> consumePurchase(@NonNull String skuType, @NonNull  String sku) {
         return Observable.create(e -> {
-            Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
+            com.android.billingclient.api.Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
-                for (Purchase purchase : purchasesResult.getPurchasesList()) {
+                for (com.android.billingclient.api.Purchase purchase : purchasesResult.getPurchasesList()) {
                     if (purchase.getSku().equals(sku)) {
                         if(e.isDisposed())
                             return;
@@ -163,16 +162,16 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<Optional<com.robj.billinglibrary.Purchase>> getSpecificSkuPurchase(String skuType, List<String> skus) {
+    public Observable<Optional<Purchase>> getSpecificSkuPurchase(String skuType, List<String> skus) {
         return Observable.create(e -> {
 
-            Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
+            com.android.billingclient.api.Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
-                for (Purchase purchase : purchasesResult.getPurchasesList()) {
+                for (com.android.billingclient.api.Purchase purchase : purchasesResult.getPurchasesList()) {
                     if(skus.contains(purchase.getSku())) {
                         if(e.isDisposed())
                             return;
-                        e.onNext(new Optional<>(new com.robj.billinglibrary.Purchase(purchase)));
+                        e.onNext(new Optional<>(new Purchase(purchase)));
                         e.onComplete();
                         return;
                     }
@@ -187,7 +186,7 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<Optional<com.robj.billinglibrary.Purchase>> getFirstAvailablePurchase() {
+    public Observable<Optional<Purchase>> getFirstAvailablePurchase() {
         return getFirstAvailablePurchase(BillingClient.SkuType.INAPP)
                 .flatMap(purchaseOptional -> {
                     if(!purchaseOptional.isEmpty())
@@ -197,13 +196,13 @@ class Billing implements BillingClientStateListener {
                 });
     }
 
-    private Observable<Optional<com.robj.billinglibrary.Purchase>> getFirstAvailablePurchase(String skuType) {
+    private Observable<Optional<Purchase>> getFirstAvailablePurchase(String skuType) {
         return Observable.create(e -> {
-            Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
+            com.android.billingclient.api.Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
-                for (Purchase purchase : purchasesResult.getPurchasesList()) {
+                for (com.android.billingclient.api.Purchase purchase : purchasesResult.getPurchasesList()) {
                     if(!e.isDisposed())
-                        e.onNext(new Optional(purchase));
+                        e.onNext(new Optional(new Purchase(purchase)));
                     return;
                 }
                 if(!e.isDisposed())
@@ -216,7 +215,7 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<com.robj.billinglibrary.Purchase> launchBillingFlow(Activity activity, String skuType, String skuId) {
+    public Observable<Purchase> launchBillingFlow(Activity activity, String skuType, String skuId) {
         if(purchaseObservableEmitter != null)
             return null;
         return Observable.create(e -> {
