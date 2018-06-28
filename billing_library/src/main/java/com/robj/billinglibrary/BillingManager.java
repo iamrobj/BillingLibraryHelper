@@ -7,6 +7,7 @@ import android.util.Log;
 
 import java.util.concurrent.TimeUnit;
 
+import static com.robj.billinglibrary.PrefsUtils.clearPref;
 import static com.robj.billinglibrary.PrefsUtils.readLongPref;
 import static com.robj.billinglibrary.PrefsUtils.readStringPref;
 import static com.robj.billinglibrary.PrefsUtils.writeLongPref;
@@ -74,7 +75,10 @@ public class BillingManager {
     }
 
     static void savePurchase(Context context, String sku) {
-        writeStringPref(context, PURCHASED_SKU, sku);
+        if(sku == null)
+            clearPref(context, PURCHASED_SKU);
+        else
+            writeStringPref(context, PURCHASED_SKU, sku);
     }
 
     public static String getPurchasedSku(Context context) {
