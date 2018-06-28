@@ -54,9 +54,9 @@ class Billing implements BillingClientStateListener {
                             handlePurchase(purchase);
                             return;
                         }
-                        handlePurchaseError(BillingException.ErrorType.UNKNOWN); //TODO: Properly
+                        handlePurchaseError(-100, BillingException.ErrorType.UNKNOWN); //TODO: Properly
                     } else if (responseCode == BillingClient.BillingResponse.USER_CANCELED) {
-                        handlePurchaseError(BillingException.ErrorType.BILLING_CANCELLED);
+                        handlePurchaseError(BillingClient.BillingResponse.USER_CANCELED, BillingException.ErrorType.BILLING_CANCELLED);
                     } else {
                         handleResponse(responseCode, null);
                     }
@@ -64,9 +64,9 @@ class Billing implements BillingClientStateListener {
         mBillingClient.startConnection(this);
     }
 
-    private void handlePurchaseError(BillingException.ErrorType errorType) {
+    private void handlePurchaseError(int originalErrorCode, BillingException.ErrorType errorType) {
         if(purchaseObservableEmitter != null) {
-            purchaseObservableEmitter.onError(new BillingException(errorType));
+            purchaseObservableEmitter.onError(new BillingException(errorType, originalErrorCode));
             purchaseObservableEmitter = null;
         }
     }
@@ -117,7 +117,7 @@ class Billing implements BillingClientStateListener {
                             if(responseCode == BillingClient.BillingResponse.OK)
                                 e.onNext(true);
                             else
-                                e.onError(new BillingException(BillingException.ErrorType.UNKNOWN));
+                                e.onError(new BillingException(BillingException.ErrorType.UNKNOWN, responseCode));
                             e.onComplete();
                         });
                         return;
@@ -129,7 +129,7 @@ class Billing implements BillingClientStateListener {
             }
             Log.e(TAG, "consumePurchase for sku type " + skuType + " with response code: " + purchasesResult.getResponseCode());
             if(!e.isDisposed())
-                e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES));
+                e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES, purchasesResult.getResponseCode()));
         });
     }
 
@@ -153,11 +153,11 @@ class Billing implements BillingClientStateListener {
                             }
                         }
                         if(!e.isDisposed())
-                            e.onError(new BillingException(BillingException.ErrorType.NO_SKU_DETAILS));
+                            e.onError(new BillingException(BillingException.ErrorType.NO_SKU_DETAILS, responseCode));
                     }
                     Log.e(TAG, "getSkuInfo response code: " + responseCode);
                     if(!e.isDisposed())
-                        e.onError(new BillingException(BillingException.ErrorType.SKU_DETAILS_ERROR));
+                        e.onError(new BillingException(BillingException.ErrorType.SKU_DETAILS_ERROR, responseCode));
                 });
         });
     }
@@ -182,7 +182,7 @@ class Billing implements BillingClientStateListener {
             }
             Log.e(TAG, "getSpecificSkuPurchase for sku type " + skuType + " with response code: " + purchasesResult.getResponseCode());
             if(!e.isDisposed())
-                e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES));
+                e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES, purchasesResult.getResponseCode()));
         });
     }
 
@@ -211,7 +211,7 @@ class Billing implements BillingClientStateListener {
             }
             Log.e(TAG, "getPurchases for sku type " + skuType + " with response code: " + purchasesResult.getResponseCode());
             if(!e.isDisposed())
-                e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES));
+                e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES, purchasesResult.getResponseCode()));
         });
     }
 
@@ -233,16 +233,16 @@ class Billing implements BillingClientStateListener {
             case BillingClient.BillingResponse.OK:
                 break;
             case BillingClient.BillingResponse.ITEM_ALREADY_OWNED:
-                handlePurchaseError(BillingException.ErrorType.ALREADY_OWNED);
+                handlePurchaseError(code, BillingException.ErrorType.ALREADY_OWNED);
                 BillingManager.savePurchase(getContext(), sku);
                 break;
             case BillingClient.BillingResponse.ITEM_UNAVAILABLE:
-                handlePurchaseError(BillingException.ErrorType.ITEM_UNAVAILABLE);
+                handlePurchaseError(code, BillingException.ErrorType.ITEM_UNAVAILABLE);
                 break;
             case BillingClient.BillingResponse.SERVICE_DISCONNECTED:
 //                break;
             case BillingClient.BillingResponse.USER_CANCELED:
-                handlePurchaseError(BillingException.ErrorType.BILLING_CANCELLED);
+                handlePurchaseError(code, BillingException.ErrorType.BILLING_CANCELLED);
                 break;
             case BillingClient.BillingResponse.ITEM_NOT_OWNED:
             case BillingClient.BillingResponse.BILLING_UNAVAILABLE:
@@ -251,7 +251,7 @@ class Billing implements BillingClientStateListener {
             case BillingClient.BillingResponse.FEATURE_NOT_SUPPORTED:
             case BillingClient.BillingResponse.SERVICE_UNAVAILABLE:
             default:
-                handlePurchaseError(BillingException.ErrorType.UNKNOWN);
+                handlePurchaseError(code, BillingException.ErrorType.UNKNOWN);
                 break;
         }
     }
