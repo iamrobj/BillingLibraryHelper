@@ -90,8 +90,8 @@ class Billing implements BillingClientStateListener {
                     if(!purchaseOptional.isEmpty()) {
                         Purchase purchase = purchaseOptional.get();
                         mBillingClient.consumeAsync(purchase.getPurchaseToken(), (purchaseToken, resultCode) -> Log.d(TAG, "Consumed : " + resultCode));
-                        BillingManager.savePurchase(getContext(), null);
                     }
+                    BillingManager.savePurchase(getContext(), null);
                 })
                 .subscribeOn(Schedulers.io())
                 .subscribe(integer -> {
