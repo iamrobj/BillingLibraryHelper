@@ -112,6 +112,8 @@ class Billing implements BillingClientStateListener {
                         if(e.isDisposed())
                             return;
                         mBillingClient.consumeAsync(purchase.getPurchaseToken(), (responseCode, purchaseToken) -> {
+                            if(responseCode == BillingClient.BillingResponse.OK && getContext() != null)
+                                BillingManager.savePurchase(getContext(), null);
                             if(e.isDisposed())
                                 return;
                             if(responseCode == BillingClient.BillingResponse.OK)

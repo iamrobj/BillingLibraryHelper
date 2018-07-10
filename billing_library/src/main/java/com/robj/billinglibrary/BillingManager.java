@@ -75,9 +75,10 @@ public class BillingManager {
     }
 
     static void savePurchase(Context context, String sku) {
-        if(sku == null)
+        if(sku == null) {
             clearPref(context, PURCHASED_SKU);
-        else
+            clearPref(context, LAST_PURCHASED_CHECK_DATE);
+        } else
             writeStringPref(context, PURCHASED_SKU, sku);
     }
 
