@@ -26,8 +26,11 @@ public class BillingManager {
     private static final String PURCHASED_SKU = "PURCHASED_SKU";
     private static final String LAST_PURCHASED_CHECK_DATE = "LAST_PURCHASED_CHECK_DATE";
 
+    private Billing billing;
+
     protected BillingManager(Application context) {
         Billing.init(context);
+        billing = Billing.getInstance(); //Keep billing alive
     }
 
     private static long getTrialLengthInMillis(Context context) {

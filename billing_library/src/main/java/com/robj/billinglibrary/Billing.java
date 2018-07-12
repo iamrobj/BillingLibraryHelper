@@ -34,7 +34,7 @@ class Billing implements BillingClientStateListener {
 
     private ObservableEmitter<Purchase> purchaseObservableEmitter;
 
-    public static void init(Application context) {
+    public static void init(Context context) {
         if(billing != null)
             billing.finish();
         new Billing(context);
@@ -44,7 +44,7 @@ class Billing implements BillingClientStateListener {
         mBillingClient.endConnection();
     }
 
-    private Billing(Application context) {
+    private Billing(Context context) {
         this.billing = this;
         this.context = context;
         mBillingClient = BillingClient.newBuilder(context)
