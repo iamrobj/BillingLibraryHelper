@@ -164,6 +164,43 @@ class Billing implements BillingClientStateListener {
         });
     }
 
+    public Observable<List<com.robj.billinglibrary.SkuDetails>> getSkuInfos(String skuType, List<String> skuList) {
+        return Observable.create(e -> {
+            SkuDetailsParams params = SkuDetailsParams.newBuilder()
+                    .setType(skuType)
+                    .setSkusList(skuList)
+                    .build();
+            mBillingClient.querySkuDetailsAsync(params, (responseCode, skuDetailsList) -> {
+                if(e.isDisposed())
+                    return;
+                if (responseCode == BillingClient.BillingResponse.OK) {
+                    if (skuDetailsList != null && !skuDetailsList.isEmpty()) {
+                        List<com.robj.billinglibrary.SkuDetails> skuDetails = new ArrayList<>();
+                        for (SkuDetails skuDetail : skuDetailsList)
+                            skuDetails.add(new com.robj.billinglibrary.SkuDetails(skuDetail));
+
+                        if(e.isDisposed())
+                            return;
+                        e.onNext(skuDetails);
+                        e.onComplete();
+                        return;
+                    }
+                    if(!e.isDisposed()) {
+                        e.onError(new BillingException(BillingException.ErrorType.NO_SKU_DETAILS, responseCode));
+                        e.onComplete();
+                        return;
+                    }
+                }
+                Log.e(TAG, "getSkuInfo response code: " + responseCode);
+                if(!e.isDisposed()) {
+                    e.onError(new BillingException(BillingException.ErrorType.SKU_DETAILS_ERROR, responseCode));
+                    e.onComplete();
+                    return;
+                }
+            });
+        });
+    }
+
     public Observable<Optional<Purchase>> getSpecificSkuPurchase(String skuType, List<String> skus) {
         return Observable.create(e -> {
 

@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
 
-import com.android.billingclient.api.Purchase;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,6 +59,10 @@ public class BillingUtils {
 
     public static Observable<SkuDetails> getSkuInfo(SkuType skuType, String sku) {
         return Billing.getInstance().getSkuInfo(skuType.getType(), sku);
+    }
+
+    public static Observable<List<SkuDetails>> getSkuInfos(SkuType skuType, List<String> skus) {
+        return Billing.getInstance().getSkuInfos(skuType.getType(), skus);
     }
 
     public static Observable<Boolean> consumeSkuPurchase(SkuType skuType, String sku) {
