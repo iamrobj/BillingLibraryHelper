@@ -278,8 +278,6 @@ class Billing implements BillingClientStateListener {
             case BillingClient.BillingResponse.ITEM_UNAVAILABLE:
                 handlePurchaseError(code, BillingException.ErrorType.ITEM_UNAVAILABLE);
                 break;
-            case BillingClient.BillingResponse.SERVICE_DISCONNECTED:
-//                break;
             case BillingClient.BillingResponse.USER_CANCELED:
                 handlePurchaseError(code, BillingException.ErrorType.BILLING_CANCELLED);
                 break;
@@ -289,6 +287,7 @@ class Billing implements BillingClientStateListener {
             case BillingClient.BillingResponse.ERROR:
             case BillingClient.BillingResponse.FEATURE_NOT_SUPPORTED:
             case BillingClient.BillingResponse.SERVICE_UNAVAILABLE:
+            case BillingClient.BillingResponse.SERVICE_DISCONNECTED:
             default:
                 handlePurchaseError(code, BillingException.ErrorType.UNKNOWN);
                 break;
