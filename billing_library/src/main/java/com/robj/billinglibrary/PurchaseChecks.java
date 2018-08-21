@@ -1,97 +1,37 @@
 package com.robj.billinglibrary;
 
-import android.app.Activity;
-import android.app.Application;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.android.billingclient.api.BillingClient;
-import com.android.billingclient.api.BillingClientStateListener;
-import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.SkuDetails;
 import com.android.billingclient.api.SkuDetailsParams;
+import com.robj.billinglibrary.models.Optional;
+import com.robj.billinglibrary.models.Purchase;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
 import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Rob J on 27/08/17.
  */
 
-class Billing implements BillingClientStateListener {
+class PurchaseChecks {
 
-    private static final String TAG = Billing.class.getSimpleName();
+    private static final String TAG = PurchaseChecks.class.getSimpleName();
 
-    private static Billing billing;
-
-    private final BillingClient mBillingClient;
-    private final Context context;
-
-    private ObservableEmitter<Purchase> purchaseObservableEmitter;
-
-    public static void init(Context context) {
-        if(billing != null)
-            billing.finish();
-        new Billing(context);
-    }
-
-    private void finish() {
-        mBillingClient.endConnection();
-    }
-
-    private Billing(Context context) {
-        this.billing = this;
-        this.context = context;
-        mBillingClient = BillingClient.newBuilder(context)
-                .setListener((responseCode, purchases) -> {
-                    if (responseCode == BillingClient.BillingResponse.OK && purchases != null) {
-                        for (com.android.billingclient.api.Purchase purchase : purchases) {
-                            handlePurchase(purchase);
-                            return;
-                        }
-                        handlePurchaseError(-100, BillingException.ErrorType.UNKNOWN); //TODO: Properly
-                    } else if (responseCode == BillingClient.BillingResponse.USER_CANCELED) {
-                        handlePurchaseError(BillingClient.BillingResponse.USER_CANCELED, BillingException.ErrorType.BILLING_CANCELLED);
-                    } else {
-                        handleResponse(responseCode, null);
-                    }
-                }).build();
-        mBillingClient.startConnection(this);
-    }
-
-    private void handlePurchaseError(int originalErrorCode, BillingException.ErrorType errorType) {
-        if(purchaseObservableEmitter != null) {
-            purchaseObservableEmitter.onError(new BillingException(errorType, originalErrorCode));
-            purchaseObservableEmitter = null;
-        }
-    }
-
-    private void handlePurchase(com.android.billingclient.api.Purchase purchase) {
-        Log.d(TAG, "Purchase of sku " + purchase.getSku() + " was successful..");
-        BillingManager.savePurchase(getContext(), purchase.getSku());
-        if(purchaseObservableEmitter != null) {
-            purchaseObservableEmitter.onNext(new Purchase(purchase));
-            purchaseObservableEmitter = null;
-        }
-    }
-
-    private Context getContext() {
-        return context;
-    }
-
-    public void clearFirstAvailablePurchase() {
-        getFirstAvailablePurchase()
+    public static void clearFirstAvailablePurchase(Context context, BillingClient mBillingClient) {
+        getFirstAvailablePurchase(mBillingClient)
                 .doOnNext(purchaseOptional -> {
                     if(!purchaseOptional.isEmpty()) {
                         Purchase purchase = purchaseOptional.get();
                         mBillingClient.consumeAsync(purchase.getPurchaseToken(), (purchaseToken, resultCode) -> Log.d(TAG, "Consumed : " + resultCode));
                     }
-                    BillingManager.savePurchase(getContext(), null);
+                    BillingManager.savePurchase(context, null);
                 })
                 .subscribeOn(Schedulers.io())
                 .subscribe(integer -> {
@@ -103,7 +43,7 @@ class Billing implements BillingClientStateListener {
      * Returns true if successfully consumed
      * Returns false if sku wasn't purchased
      * **/
-    public Observable<Boolean> consumePurchase(@NonNull String skuType, @NonNull  String sku) {
+    public static Observable<Boolean> consumePurchase(Context context, BillingClient mBillingClient, @NonNull String skuType, @NonNull  String sku) {
         return Observable.create(e -> {
             com.android.billingclient.api.Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
@@ -112,8 +52,8 @@ class Billing implements BillingClientStateListener {
                         if(e.isDisposed())
                             return;
                         mBillingClient.consumeAsync(purchase.getPurchaseToken(), (responseCode, purchaseToken) -> {
-                            if(responseCode == BillingClient.BillingResponse.OK && getContext() != null)
-                                BillingManager.savePurchase(getContext(), null);
+                            if(responseCode == BillingClient.BillingResponse.OK && context != null)
+                                BillingManager.savePurchase(context, null);
                             if(e.isDisposed())
                                 return;
                             if(responseCode == BillingClient.BillingResponse.OK)
@@ -135,7 +75,7 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<com.robj.billinglibrary.SkuDetails> getSkuInfo(String skuType, String sku) {
+    public static Observable<com.robj.billinglibrary.models.SkuDetails> getSkuInfo(BillingClient mBillingClient, String skuType, String sku) {
         return Observable.create(e -> {
                 List<String> skuList = new ArrayList();
                 skuList.add(sku);
@@ -149,7 +89,7 @@ class Billing implements BillingClientStateListener {
                             for (SkuDetails skuDetails : skuDetailsList) {
                                 if (skuDetails.getSku().equals(sku)) {
                                     if(!e.isDisposed())
-                                        e.onNext(new com.robj.billinglibrary.SkuDetails(skuDetails));
+                                        e.onNext(new com.robj.billinglibrary.models.SkuDetails(skuDetails));
                                     return;
                                 }
                             }
@@ -164,7 +104,7 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<List<com.robj.billinglibrary.SkuDetails>> getSkuInfos(String skuType, List<String> skuList) {
+    public static Observable<List<com.robj.billinglibrary.models.SkuDetails>> getSkuInfos(BillingClient mBillingClient, String skuType, List<String> skuList) {
         return Observable.create(e -> {
             SkuDetailsParams params = SkuDetailsParams.newBuilder()
                     .setType(skuType)
@@ -175,9 +115,9 @@ class Billing implements BillingClientStateListener {
                     return;
                 if (responseCode == BillingClient.BillingResponse.OK) {
                     if (skuDetailsList != null && !skuDetailsList.isEmpty()) {
-                        List<com.robj.billinglibrary.SkuDetails> skuDetails = new ArrayList<>();
+                        List<com.robj.billinglibrary.models.SkuDetails> skuDetails = new ArrayList<>();
                         for (SkuDetails skuDetail : skuDetailsList)
-                            skuDetails.add(new com.robj.billinglibrary.SkuDetails(skuDetail));
+                            skuDetails.add(new com.robj.billinglibrary.models.SkuDetails(skuDetail));
 
                         if(e.isDisposed())
                             return;
@@ -201,7 +141,7 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<Optional<Purchase>> getSpecificSkuPurchase(String skuType, List<String> skus) {
+    public static Observable<Optional<Purchase>> getSpecificSkuPurchase(BillingClient mBillingClient, String skuType, List<String> skus) {
         return Observable.create(e -> {
 
             com.android.billingclient.api.Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
@@ -225,17 +165,17 @@ class Billing implements BillingClientStateListener {
         });
     }
 
-    public Observable<Optional<Purchase>> getFirstAvailablePurchase() {
-        return getFirstAvailablePurchase(BillingClient.SkuType.INAPP)
+    public static Observable<Optional<Purchase>> getFirstAvailablePurchase(BillingClient mBillingClient) {
+        return getFirstAvailablePurchase(mBillingClient, BillingClient.SkuType.INAPP)
                 .flatMap(purchaseOptional -> {
                     if(!purchaseOptional.isEmpty())
                         return Observable.just(purchaseOptional);
                     else
-                        return getFirstAvailablePurchase(BillingClient.SkuType.SUBS);
+                        return getFirstAvailablePurchase(mBillingClient, BillingClient.SkuType.SUBS);
                 });
     }
 
-    private Observable<Optional<Purchase>> getFirstAvailablePurchase(String skuType) {
+    public static Observable<Optional<Purchase>> getFirstAvailablePurchase(BillingClient mBillingClient, String skuType) {
         return Observable.create(e -> {
             com.android.billingclient.api.Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(skuType);
             if(purchasesResult.getResponseCode() == BillingClient.BillingResponse.OK) {
@@ -253,63 +193,5 @@ class Billing implements BillingClientStateListener {
                 e.onError(new BillingException(BillingException.ErrorType.UNABLE_TO_CHECK_PURCHASES, purchasesResult.getResponseCode()));
         });
     }
-
-    public Observable<Purchase> launchBillingFlow(Activity activity, String skuType, String skuId) {
-        if(purchaseObservableEmitter != null)
-            return null;
-        return Observable.create(e -> {
-            purchaseObservableEmitter = e;
-            BillingFlowParams.Builder builder = BillingFlowParams.newBuilder()
-                    .setSku(skuId)
-                    .setType(skuType);
-            int code = mBillingClient.launchBillingFlow(activity, builder.build());
-            handleResponse(code, skuId);
-        });
-    }
-
-    private void handleResponse(int code, String sku) {
-        switch (code) {
-            case BillingClient.BillingResponse.OK:
-                break;
-            case BillingClient.BillingResponse.ITEM_ALREADY_OWNED:
-                handlePurchaseError(code, BillingException.ErrorType.ALREADY_OWNED);
-                BillingManager.savePurchase(getContext(), sku);
-                break;
-            case BillingClient.BillingResponse.ITEM_UNAVAILABLE:
-                handlePurchaseError(code, BillingException.ErrorType.ITEM_UNAVAILABLE);
-                break;
-            case BillingClient.BillingResponse.USER_CANCELED:
-                handlePurchaseError(code, BillingException.ErrorType.BILLING_CANCELLED);
-                break;
-            case BillingClient.BillingResponse.ITEM_NOT_OWNED:
-            case BillingClient.BillingResponse.BILLING_UNAVAILABLE:
-            case BillingClient.BillingResponse.DEVELOPER_ERROR:
-            case BillingClient.BillingResponse.ERROR:
-            case BillingClient.BillingResponse.FEATURE_NOT_SUPPORTED:
-            case BillingClient.BillingResponse.SERVICE_UNAVAILABLE:
-            case BillingClient.BillingResponse.SERVICE_DISCONNECTED:
-            default:
-                handlePurchaseError(code, BillingException.ErrorType.UNKNOWN);
-                break;
-        }
-    }
-
-    @Override
-    public void onBillingSetupFinished(@BillingClient.BillingResponse int billingResponseCode) {
-        if (billingResponseCode == BillingClient.BillingResponse.OK)
-            Log.d(TAG, "Setup finished successfully..");
-        else
-            Log.e(TAG, "Setup error occurred, response code: " + billingResponseCode);
-    }
-
-    @Override
-    public void onBillingServiceDisconnected() {
-        Log.d(TAG, "Setup finished successfully..");
-    }
-
-    public static Billing getInstance() {
-        return billing;
-    }
-
 
 }
