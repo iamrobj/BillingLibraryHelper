@@ -27,7 +27,7 @@ object BillingUtils {
 
     @JvmStatic
     fun reevaluateSpecificPurchasedStatus(context: Context, skuType: SkuType, skus: List<String>): Observable<Optional<Purchase>> {
-        return Billing.instance.getSpecificSkuPurchase(skuType.type, skus)
+        return Billing.getInstance(context).getSpecificSkuPurchase(skuType.type, skus)
                 .doOnNext { purchaseOptional ->
                     if (purchaseOptional.isEmpty) {
                         BillingManager.savePurchase(context, null)
@@ -41,7 +41,7 @@ object BillingUtils {
 
     @JvmStatic
     fun reevaluatePurchasedStatus(context: Context): Observable<Optional<Purchase>> {
-        return Billing.instance.firstAvailablePurchase
+        return Billing.getInstance(context).firstAvailablePurchase
                 .doOnNext { purchaseOptional ->
                     if (purchaseOptional.isEmpty) {
                         BillingManager.savePurchase(context, null)
@@ -55,7 +55,7 @@ object BillingUtils {
 
     @JvmStatic
     fun makePurchase(activity: Activity, skuType: SkuType, sku: String): Observable<Purchase> {
-        return Billing.instance.launchBillingFlow(activity, skuType.type, sku)!!
+        return Billing.getInstance(activity).launchBillingFlow(activity, skuType.type, sku)!!
                 .doOnNext { purchase ->
                     Log.d(TAG, "Purchase success..")
                     BillingManager.savePurchase(activity, purchase.sku)
@@ -63,22 +63,22 @@ object BillingUtils {
     }
 
     @JvmStatic
-    fun getSkuInfo(skuType: SkuType, sku: String): Observable<SkuDetails> {
-        return Billing.instance.getSkuInfo(skuType.type, sku)
+    fun getSkuInfo(context: Context, skuType: SkuType, sku: String): Observable<SkuDetails> {
+        return Billing.getInstance(context).getSkuInfo(skuType.type, sku)
     }
 
     @JvmStatic
-    fun getSkuInfos(skuType: SkuType, skus: List<String>): Observable<List<SkuDetails>> {
-        return Billing.instance.getSkuInfos(skuType.type, skus)
+    fun getSkuInfos(context: Context, skuType: SkuType, skus: List<String>): Observable<List<SkuDetails>> {
+        return Billing.getInstance(context).getSkuInfos(skuType.type, skus)
     }
 
     @JvmStatic
-    fun consumeSkuPurchase(skuType: SkuType, sku: String): Observable<Boolean> {
-        return Billing.instance.consumePurchase(skuType.type, sku)
+    fun consumeSkuPurchase(context: Context, skuType: SkuType, sku: String): Observable<Boolean> {
+        return Billing.getInstance(context).consumePurchase(skuType.type, sku)
     }
 
     @JvmStatic
-    fun clearFirstAvailablePurchase() {
-        Billing.instance.clearFirstAvailablePurchase()
+    fun clearFirstAvailablePurchase(context: Context) {
+        Billing.getInstance(context).clearFirstAvailablePurchase()
     }
 }

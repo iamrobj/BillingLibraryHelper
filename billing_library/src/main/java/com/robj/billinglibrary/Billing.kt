@@ -42,7 +42,6 @@ internal class Billing private constructor(private val context: Context) : Billi
     }
 
     init {
-        instance = this
         initSubject();
         mBillingClient = BillingClient.newBuilder(context)
                 .setListener { responseCode, purchases ->
@@ -138,7 +137,13 @@ internal class Billing private constructor(private val context: Context) : Billi
 
         private val TAG = Billing::class.java.simpleName
 
-        lateinit var instance: Billing
+        private var instance: Billing? = null
+
+        fun getInstance(context: Context): Billing {
+            if(instance == null)
+                instance = Billing(context)
+            return instance!!
+        }
 
         fun init(context: Context) {
             instance?.finish()

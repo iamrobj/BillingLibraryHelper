@@ -16,7 +16,7 @@ class BillingManager protected constructor(context: Application) {
 
     init {
         Billing.init(context)
-        billing = Billing.instance //Keep billing alive
+        billing = Billing.getInstance(context) //Keep billing alive
     }
 
     protected fun setTrialLengthInDays(context: Context, trialLengthInDays: Int) {
